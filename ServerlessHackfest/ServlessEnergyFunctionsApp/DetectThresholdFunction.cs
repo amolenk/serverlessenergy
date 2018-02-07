@@ -1,16 +1,20 @@
 using System;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using System.Collections.Generic;
 using Microsoft.Azure.Documents;
 using Newtonsoft.Json.Linq;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.Logging;
 
 namespace ServlessEnergyFunctionsApp
 {
     public static class DetectThresholdFunction
     {
-        const string DeviceReadEventName = "DeviceRead";
+        private const string DeviceReadEventName = "DeviceRead";
+
+        private static string key = TelemetryConfiguration.Active.InstrumentationKey = Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process);
+        private static TelemetryClient telemetry = new TelemetryClient() { InstrumentationKey = key };
 
         [FunctionName("DetectThresholdFunction")]
         public static void Run([CosmosDBTrigger("telemetrydb", "telemetry", ConnectionStringSetting = "CosmosDbServerlessamsterdamsqlConnectionString", CreateLeaseCollectionIfNotExists = true, LeaseCollectionName = "threshold-leases")] IReadOnlyList<Document> documents, ILogger log)
@@ -30,6 +34,12 @@ namespace ServlessEnergyFunctionsApp
                     if (valueExceedsThreshold)
                     {
 
+                        var props = new Dictionary<string, string>();
+                        props["DeviceId"] = deviceId;
+                        props["ReadingChannel"] = readingChannel;
+
+                        telemetry.TrackEvent("ThresholdExceeded", props);
+
                         log.LogWarning($"Threshold exceeded for device {deviceId}. Channel: {readingChannel} Value: {readingValue}");
                     }
                 }
@@ -38,7 +48,8 @@ namespace ServlessEnergyFunctionsApp
 
         private static bool ValueExceedsThreshold(decimal value)
         {
-            // This threshold validation is fake. The simulated meters that we use only push increasing values.
+            // This threshold validation is fake.
+            // The simulated meters that we use only push increasing values, therefore we need to to simulate the check if the reading exceeds a threshold.
             var divisibleByThree = Math.Floor(value) % 3 == 0;
             return divisibleByThree;
         }
