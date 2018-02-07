@@ -4,6 +4,7 @@ using Microsoft.Azure.WebJobs.Host;
 using System.Collections.Generic;
 using Microsoft.Azure.Documents;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace ServlessEnergyFunctionsApp
 {
@@ -12,7 +13,7 @@ namespace ServlessEnergyFunctionsApp
         const string DeviceReadEventName = "DeviceRead";
 
         [FunctionName("DetectThresholdFunction")]
-        public static void Run([CosmosDBTrigger("telemetrydb", "telemetry", ConnectionStringSetting = "CosmosDbServerlessamsterdamsqlConnectionString", CreateLeaseCollectionIfNotExists = true, LeaseCollectionName = "threshold-leases")] IReadOnlyList<Document> documents, TraceWriter log)
+        public static void Run([CosmosDBTrigger("telemetrydb", "telemetry", ConnectionStringSetting = "CosmosDbServerlessamsterdamsqlConnectionString", CreateLeaseCollectionIfNotExists = true, LeaseCollectionName = "threshold-leases")] IReadOnlyList<Document> documents, ILogger log)
         {
             foreach (var document in documents)
             {
@@ -29,7 +30,7 @@ namespace ServlessEnergyFunctionsApp
                     if (valueExceedsThreshold)
                     {
 
-                        log.Warning($"Threshold exceeded for device {deviceId}. Channel: {readingChannel} Value: {readingValue}");
+                        log.LogWarning($"Threshold exceeded for device {deviceId}. Channel: {readingChannel} Value: {readingValue}");
                     }
                 }
             }
