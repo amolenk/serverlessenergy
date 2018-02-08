@@ -1,6 +1,7 @@
 ﻿using DeviceSimulator.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -53,7 +54,7 @@ namespace DeviceSimulator
             var peakIntervals = new int[] { 5, 10, 15, 20 };
             var random = new Random();
 
-            foreach (var device in devicesWithPeakStrat)
+            foreach (var device in devicesWithPeakStrat.Take(numberOfDevicesWithPeakStrategy - 1))
             {
                 // Randomizing the peak interval for some variation between devices
                 var peakIntervalSeconds = random.Next(0, peakIntervals.Length);
@@ -71,6 +72,21 @@ namespace DeviceSimulator
                 var simTask = sim.RunAsync(strat, cancellationToken);
                 yield return simTask;
             }
+
+            var zeroDevice = devicesWithPeakStrat.TakeLast(1).First();
+
+            var zeroSim = new ChannelSimulation(zeroDevice, "register://electricity/0/voltage/sumli", "V", eventhubEventSender);
+            var zeroStrat = new PeakStrategy()
+            {
+                MinValue = 0,
+                MaxValue = 0,
+                PeakValue = 230,
+                ValueInterval = TimeSpan.FromMilliseconds(100),
+                PeakInterval = TimeSpan.FromSeconds(60*5)
+            };
+
+            var zeroSimTask = zeroSim.RunAsync(zeroStrat, cancellationToken);
+            yield return zeroSimTask;
         }
 
         private static List<string> LoadDevices(string fileName, int numberOfDevices)
