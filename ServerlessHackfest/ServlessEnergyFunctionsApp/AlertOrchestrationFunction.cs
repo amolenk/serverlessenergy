@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.Documents;
@@ -15,34 +16,48 @@ namespace ServlessEnergyFunctionsApp
             TraceWriter log)
         {
             var document = context.GetInput<Document>();
+            var alertResults = await RunAlerts(context, document);
 
-            // TODO Load configuration from storage to build the list of alerts dynamically.
-            var alertTasks = new Task<bool>[]
+            var triggeredAlerts = alertResults.Where(x => x.Triggered);
+
+            foreach (var alert in triggeredAlerts)
             {
-                //context.CallActivityAsync<bool>("ThresholdAlertFunction", new ThresholdAlertInput
-                //{
-                //    Document = document,
-                //    Max = 100
-                //}),
-                context.CallActivityAsync<bool>("ZeroDataForPeriodAlertFunction", new ZeroDataForPeriodAlertInput
-                {
-                    Document = document,
-                    MonitorTimeSpan = TimeSpan.FromMinutes(5)
-                }),
-            };
+                log.Warning($"Triggered alert {alert.AlertName}: {alert.AlertMessage}");
+            }
+        }
 
-            //try
-            //{
-                // Get results from fan-out.
-                var results = await Task.WhenAll(alertTasks);
+        private static async Task<List<AlertResult>> RunAlerts(DurableOrchestrationContext context, Document document)
+        {
+            // TODO Load configuration from storage to build the list of alerts dynamically.
+            var alertResults = new List<AlertResult>();
 
-                log.Warning($"GOT {results.Count(result => result)} ALERTS!");
-            //}
-            //catch (Exception ex)
-            //{
-            //    log.Error(ex.Message);
-            //}
+            await RunThresholdAlert(context, document, alertResults);
+            await RunZeroDataForPeriodAlert(context, document, alertResults);
 
+            return alertResults;
+        }
+
+        private static async Task RunZeroDataForPeriodAlert(DurableOrchestrationContext context, Document document, List<AlertResult> alertResults)
+        {
+            var zeroDataForPeriodAlertResult = await context.CallActivityAsync<AlertResult>("ZeroDataForPeriodAlertFunction", new ZeroDataForPeriodAlertInput
+            {
+                Document = document,
+                MonitorTimeSpan = TimeSpan.FromSeconds(10),
+            });
+
+            alertResults.Add(zeroDataForPeriodAlertResult);
+        }
+
+        private static async Task RunThresholdAlert(DurableOrchestrationContext context, Document document, List<AlertResult> alertResults)
+        {
+            var thresholdAlertResult = await context.CallActivityAsync<AlertResult>("ThresholdAlertFunction", new ThresholdAlertInput
+            {
+                Document = document,
+                Min = 228,
+                Max = 232,
+            });
+
+            alertResults.Add(thresholdAlertResult);
         }
     }
 }

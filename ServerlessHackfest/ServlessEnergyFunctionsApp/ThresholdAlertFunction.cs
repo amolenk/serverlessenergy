@@ -8,7 +8,7 @@ namespace ServlessEnergyFunctionsApp
     public static class ThresholdAlertFunction
     {
         [FunctionName("ThresholdAlertFunction")]
-        public static bool Run(
+        public static AlertResult Run(
             [ActivityTrigger] DurableActivityContext context,
             TraceWriter log)
         {
@@ -20,8 +20,15 @@ namespace ServlessEnergyFunctionsApp
             var readingChannel = reading.Value<string>("channelId");
             var readingValue = reading.Value<decimal>("value");
 
-            return (input.Min.HasValue && readingValue < input.Min.Value)
+            var result = (input.Min.HasValue && readingValue < input.Min.Value)
                 || (input.Max.HasValue && readingValue > input.Max.Value);
+
+            return  new AlertResult()
+            {
+                AlertName = "ThresholdExceededAlert",
+                AlertMessage = $"Device with id {deviceId} exceeded threshold boundary of min {input.Min} and max {input.Max}. Value: {readingValue}",
+                Triggered = result,
+            };
          }
     }
 }

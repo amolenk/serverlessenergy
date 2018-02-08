@@ -13,7 +13,7 @@ namespace ServlessEnergyFunctionsApp
         private static readonly StateRepository Repository = new StateRepository(Environment.GetEnvironmentVariable("StateStorage"));
  
         [FunctionName("ZeroDataForPeriodAlertFunction")]
-        public static async Task<bool> Run(
+        public static async Task<AlertResult> Run(
             [ActivityTrigger] DurableActivityContext context,
             TraceWriter log)
         {
@@ -26,18 +26,37 @@ namespace ServlessEnergyFunctionsApp
             var timestamp = reading["timestamp"].Value<DateTime>();
 
             var stateKey = $"{deviceId}_{channelId}".Replace(':', '_').Replace('/', '_');
+            var versionedState = await UpdateState(log, deviceId, value, timestamp, stateKey);
 
-            bool succes;
+            var rv = new AlertResult()
+            {
+                AlertName = "ZeroDataForPeriodAlert",
+                Triggered = false,
+            };
+
+            if (versionedState.State.ZeroSince.HasValue && DateTime.UtcNow - versionedState.State.ZeroSince.Value > input.MonitorTimeSpan)
+            {
+                rv.AlertMessage = $"Device with id {deviceId} is publishing 0 values since {versionedState.State.ZeroSince.Value} while a maximum timespan of {input.MonitorTimeSpan} is allowed";
+                rv.Triggered = true;
+            }
+
+            return rv;
+        }
+
+        private static async Task<VersionedState<ZeroDataForPeriodAlertState>> UpdateState(TraceWriter log, string deviceId, decimal value, DateTime timestamp, string stateKey)
+        {
+            var versionedState = await Repository.LoadAsync<ZeroDataForPeriodAlertState>(stateKey);
+
+            bool succes = false;
             bool dirty = false;
+
             do
             {
                 try
                 {
-                    var versionedState = await Repository.LoadAsync<ZeroDataForPeriodAlertState>(stateKey);
-
                     if (versionedState.State == null)
                     {
-                        versionedState.State = new ZeroDataForPeriodAlertState();
+                        versionedState.State = new ZeroDataForPeriodAlertState() { DeviceId = deviceId };
                         dirty = true;
                     }
 
@@ -52,14 +71,10 @@ namespace ServlessEnergyFunctionsApp
                         dirty = true;
                     }
 
-                    // TODO Check if we should raise an alert.
-
-
                     if (dirty)
                     {
                         await Repository.SaveAsync(stateKey, versionedState);
                     }
-
                     succes = true;
                 }
                 catch (StorageException ex)
@@ -69,13 +84,14 @@ namespace ServlessEnergyFunctionsApp
                 }
             }
             while (!succes);
-
-            return false;
+            return versionedState;
         }
     }
 
     public class ZeroDataForPeriodAlertState
     {
+        public string DeviceId { get; set; }
+
         public DateTime? ZeroSince { get; set; }
     }
 }
