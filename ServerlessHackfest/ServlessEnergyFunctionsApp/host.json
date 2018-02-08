@@ -1,4 +1,5 @@
 {
+  "tracing": {"consoleLevel": "warning"},
   "logger": {
     "categoryFilter": {
       "defaultLevel": "Information",

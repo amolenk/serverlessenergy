@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServlessEnergyFunctionsApp", "ServlessEnergyFunctionsApp\ServlessEnergyFunctionsApp.csproj", "{35587577-7638-4D19-9162-FF3CCFAFCF97}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServlessEnergyFunctionsApp", "ServlessEnergyFunctionsApp\ServlessEnergyFunctionsApp.csproj", "{35587577-7638-4D19-9162-FF3CCFAFCF97}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeviceSimulator", "DeviceSimulator\DeviceSimulator.csproj", "{671800EC-035D-4B27-9004-DC210153E166}"
 EndProject
