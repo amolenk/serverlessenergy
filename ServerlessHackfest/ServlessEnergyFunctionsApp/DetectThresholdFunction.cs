@@ -24,7 +24,7 @@ namespace ServlessEnergyFunctionsApp
                 var eventName = document.GetPropertyValue<string>("eventName");
                 var deviceId = document.GetPropertyValue<string>("deviceId");
 
-                if(DeviceReadEventName.Equals(eventName, StringComparison.OrdinalIgnoreCase))
+                if (DeviceReadEventName.Equals(eventName, StringComparison.OrdinalIgnoreCase))
                 {
                     var reading = document.GetPropertyValue<JObject>("reading");
                     var readingChannel = reading.Value<string>("channelId");
@@ -33,10 +33,11 @@ namespace ServlessEnergyFunctionsApp
                     var valueExceedsThreshold = ValueExceedsThreshold(readingValue);
                     if (valueExceedsThreshold)
                     {
-
                         var props = new Dictionary<string, string>();
                         props["DeviceId"] = deviceId;
                         props["ReadingChannel"] = readingChannel;
+                        props["ConfiguredThresholdValue"] = "0";
+                        props["ActualReadingValue"] = readingValue.ToString();
 
                         telemetry.TrackEvent("ThresholdExceeded", props);
 
