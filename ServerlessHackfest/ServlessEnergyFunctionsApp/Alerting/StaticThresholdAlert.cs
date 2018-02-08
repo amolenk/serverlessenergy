@@ -14,18 +14,13 @@ namespace ServlessEnergyFunctionsApp.Alerting
 
         public decimal? Max { get; set; }
 
-        public StaticThresholdAlert()
-        {
-
-        }
-
         public override bool IsActive(Document document)
         {
             var reading = document.GetPropertyValue<JObject>("reading");
             var readingValue = reading.Value<decimal>("value");
 
-            return (!Min.HasValue || readingValue >= Min.Value)
-                && (!Max.HasValue || readingValue <= Max.Value);
+            return (Min.HasValue && readingValue < Min.Value)
+                || (Max.HasValue && readingValue > Max.Value);
         }
 
         public override string ToString()
